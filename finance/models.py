@@ -1,4 +1,5 @@
 from django.db import models
+from datetime import *
 
 
 class TypeLaunch(models.Model):
@@ -23,14 +24,18 @@ class Extract(models.Model):
     provider = models.ForeignKey(Provider, blank=True, null=True)
 
     def importer(self, path):
-        with open(path, 'rb') as ff:
+        with open(path, 'r') as ff:
             import pdb; pdb.set_trace()
-            contents = ff.read()
+            contents = ff.readlines()
             line = 0
+            extract = Extract()
             while line <= len(contents):
-                date_launch, launch_aux, value_debit = contents[line].split(';')
-                extract.launch = launch_aux.strip()[:-6]
-                extract.date_purchase = launch_aux.strip()[-5:]
+                extract.date_launch, launch_aux, extract.value_debit = contents[line].split(';')
+                if launch_aux[-3] == '/':
+                    extract.launch = launch_aux.strip('-')[0].strip()
+                    extract.date_purchase = launch_aux.split('-')[1]
+                else:
+                    extract.launch = launch_aux.strip()
                 extract.save()
                 line += 1
 
