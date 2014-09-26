@@ -1,5 +1,5 @@
 from django.db import models
-from datetime import *
+from datetime import datetime
 
 
 class TypeLaunch(models.Model):
@@ -23,20 +23,57 @@ class Extract(models.Model):
     cancelled = models.BooleanField(default=True, db_index=True)
     provider = models.ForeignKey(Provider, blank=True, null=True)
 
+    def str_to_date(self, date, year='2014'):
+        #import pdb; pdb.set_trace()
+        if launch.strip()[-3] == '/':
+            
+        date = date.split('-')[-1].strip()
+        date = date.replace('/','-')
+        if len(date) == 5:
+            date = date + '-' + str(year)
+
+        return datetime.strptime(date, '%d-%m-%Y').date()
+
+    def str_to_float(self, value):
+        return float(value.replace(',','.'))
+
     def importer(self, path):
         with open(path, 'r') as ff:
-            import pdb; pdb.set_trace()
             contents = ff.readlines()
             line = 0
             extract = Extract()
             while line <= len(contents):
-                extract.date_launch, launch_aux, extract.value_debit = contents[line].split(';')
-                if launch_aux[-3] == '/':
-                    extract.launch = launch_aux.strip('-')[0].strip()
-                    extract.date_purchase = launch_aux.split('-')[1]
+                date_launch, launch, value = contents[line].split(';')
+                extract.date_launch = extract.str_to_date(date_launch)
+                extract.launch = launch.strip()   #.split('-')[:-1]
+                
+                    year = extract.str_to_date(date_launch).year
+                    extract.date_purchase = extract.str_to_date(launch, year)
                 else:
-                    extract.launch = launch_aux.strip()
+                    extract.date_purchase = extract.str_to_date(date_launch)
+
+                if extract.str_to_float(value) < 0:
+                    extract.value_debit = extract.str_to_float(value)
+                    extract.value_credit = 0
+                else:
+                    extract.value_debit = 0
+                    extract.value_credit = extract.str_to_float(value)
+
+                extract.value_balance = 0
                 extract.save()
                 line += 1
 
             ff.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
