@@ -6,6 +6,9 @@ from django.contrib.contenttypes.models import *
 class TypeLaunch(models.Model):
     type_name = models.CharField(max_length=100, unique=True)
 
+    def __unicode__(self):
+        return u'%s' % (self.type_name)
+
 
 class Provider(models.Model):
     description = models.CharField(max_length=100, unique=True)
@@ -28,7 +31,6 @@ class Extract(models.Model):
     value_credit = models.DecimalField(max_digits=8, decimal_places=2)
     value_balance = models.DecimalField(max_digits=8, decimal_places=2)
     cancelled = models.BooleanField(default=True, db_index=True)
-    provider = models.ForeignKey(Provider, blank=True, null=True)
 
     def str_to_date(self, date_launch):
         date = date_launch.replace('/','-')

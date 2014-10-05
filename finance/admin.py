@@ -1,14 +1,10 @@
 from django.contrib import admin
-
-# Register your models here.
 from finance.models import Extract, TypeLaunch, Provider
 
 
-#class TypeLaunchInline(admin.StackedInline):
-class TypeLaunchInline(admin.TabularInline):
-    model = TypeLaunch
-    extra = 0
-    raw_id_fields = ('id', 'type_name', )
+class ProviderInline(admin.TabularInline):
+    model = Provider
+    raw_id_fields = ('type_launch', )
 
 
 class ExtractAdmin(admin.ModelAdmin):
@@ -20,17 +16,24 @@ class ExtractAdmin(admin.ModelAdmin):
     # inlines = (TypeLaunchInline,)
     # raw_id_fields = ('date_launch', 'launch', 'date_purchase', 'value_debit', 'value_credit', 'value_balance' )
     search_fields = ('date_launch', 'launch',)
-    list_display = ('date_launch', 'launch', 'date_purchase', 'value_debit', 'value_credit', 'value_balance')
+    list_display = ('id', 'date_launch', 'launch', 'date_purchase', 'value_debit', 'value_credit', 'value_balance')
 
 
 class TypeLaunchAdmin(admin.ModelAdmin):
-	search_fields = ('id', 'type_name',)
-	list_display = ('id', 'type_name',)
+    #inlines = [ProviderInline, ]
+    search_fields = ('id', 'type_name',)
+    list_display = ('id', 'type_name',)
 
 
 class ProviderAdmin(admin.ModelAdmin):
-	search_fields = ('type_launch', 'date_last_purchase', 'value_total', 'description',)
-	list_display = ('type_launch', 'date_last_purchase', 'value_total', 'description',)
+    search_fields = ('id', 'type_launch__type_name', 'date_last_purchase', 'value_total', 'description',)
+    list_display = ('id', 'type_name', 'date_last_purchase', 'value_total', 'description',)
+    #raw_id_fields = ('type_launch', )
+
+    def type_name(self, instance):
+        obj = instance.type_launch
+        if not obj is None:
+            return obj.type_name
 
 
 admin.site.register(Extract, ExtractAdmin)

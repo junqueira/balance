@@ -1,0 +1,86 @@
+[
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 1,
+        "fields": {
+            "type_name": "Imposto"
+        }
+    },
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 2,
+        "fields": {
+            "type_name": "Outros"
+        }
+    },
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 3,
+        "fields": {
+            "type_name": "Esporte"
+        }
+    },
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 4,
+        "fields": {
+            "type_name": "Moradia"
+        }
+    },
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 5,
+        "fields": {
+            "type_name": "Logistica"
+        }
+    },
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 6,
+        "fields": {
+            "type_name": "Comunicacao"
+        }
+    },
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 7,
+        "fields": {
+            "type_name": "Utensilios"
+        }
+    },
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 8,
+        "fields": {
+            "type_name": "Estudo"
+        }
+    },
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 9,
+        "fields": {
+            "type_name": "Diversao"
+        }
+    },
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 10,
+        "fields": {
+            "type_name": "Alimento"
+        }
+    },
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 11,
+        "fields": {
+            "type_name": "Hig_Beleza"
+        }
+    },
+    {
+        "model": "finance.TypeLaunch",
+        "pk": 12,
+        "fields": {
+            "type_name": "Aviacao"
+        }
+    }
+]
