@@ -25,15 +25,30 @@ class Provider(models.Model):
 
 class ProviderWeek(models.Model):
 
-    def get_day_week(self, date):
-        DayL = ['Mon', 'Tues', 'Wednes', 'Thurs', 'Fri', 'Satur', 'Sun']
-        day = 0
+    def day_close(self, date):
         #DayL[date.isocalendar()[2]]
-        while day < 7:
-            print(str(date.fromordinal(date.toordinal()-day)) + ' => ' + DayL[day] + 'day')
-            day += 1
+        # the weekly cost and so closed 'Fri', 'Satur' or 'Sun'
+        fri = 4
+        if date.weekday() < fri:
+            day = self.dif_date(date, date.weekday()+1)
+        return day
 
-    def conf_provider_type(self, launch):
+    def dif_date(self, date, day):
+        return date.fromordinal(date.toordinal()-day)
+
+    def day_week(self, date):
+        DayL = ['Mon', 'Tues', 'Wednes', 'Thurs', 'Fri', 'Satur', 'Sun']
+        n = 0
+        while n < 7:
+            day = str(self.dif_date(date, n))
+            print(day + ' => ' + DayL[n] + 'day')
+            n += 1
+
+    def search(self, date=''):
+        date = datetime.strptime('05-05-2014', '%d-%m-%Y').date()
+        self.day_week(date)
+
+    def provider_type(self, launch):
         prov = Provider.objects.filter(description=launch)
         if prov.exists() and prov[0].type_launch_id is None:
             print('Provider => ' + launch + ' does not exist cost')
