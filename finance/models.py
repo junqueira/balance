@@ -25,28 +25,34 @@ class Provider(models.Model):
 
 class ProviderWeek(models.Model):
 
-    def day_close(self, date):
-        #DayL[date.isocalendar()[2]]
-        # the weekly cost and so closed 'Fri', 'Satur' or 'Sun'
-        fri = 4
-        if date.weekday() < fri:
-            day = self.dif_date(date, date.weekday()+1)
-        return day
-
     def dif_date(self, date, day):
         return date.fromordinal(date.toordinal()-day)
 
-    def day_week(self, date):
-        DayL = ['Mon', 'Tues', 'Wednes', 'Thurs', 'Fri', 'Satur', 'Sun']
-        n = 0
-        while n < 7:
-            day = str(self.dif_date(date, n))
-            print(day + ' => ' + DayL[n] + 'day')
-            n += 1
+    def get_launch(self, date):
+        extract = Extract.objects.filter(date_purchase=date)
+        total = 0
+        for x in extract:
+            total += x.value_debit
+            print(' # ' + str(x.launch) + ' => ' + str(x.value_debit))
+        print(' ## ' + str(total) + ' ## ')
 
     def search(self, date=''):
-        date = datetime.strptime('05-05-2014', '%d-%m-%Y').date()
-        self.day_week(date)
+        #date = datetime.strptime('09-05-2014', '%d-%m-%Y').date()
+        date = datetime.today().date()
+        numWeek = date.isocalendar()
+        DayL = ['Mon', 'Tues', 'Wednes', 'Thurs', 'Fri', 'Satur', 'Sun']
+        # the weekly cost and so closed 'Fri', 'Satur' or 'Sun'
+        fri = 4
+        n = 0
+        week = date.weekday()
+        while n < len(DayL):
+            if week < fri:
+                day = self.dif_date(date, 7 + week - n)
+            else:
+                day = self.dif_date(date, week - n)
+            print(str(day) + ' => ' + DayL[n] + 'day')
+            self.get_launch(day)
+            n += 1
 
     def provider_type(self, launch):
         prov = Provider.objects.filter(description=launch)
