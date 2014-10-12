@@ -23,6 +23,22 @@ class Provider(models.Model):
         provider.save()
 
 
+class ProviderWeek(models.Model):
+
+    def get_day_week(self, date):
+        DayL = ['Mon', 'Tues', 'Wednes', 'Thurs', 'Fri', 'Satur', 'Sun']
+        day = 0
+        #DayL[date.isocalendar()[2]]
+        while day < 7:
+            print(str(date.fromordinal(date.toordinal()-day)) + ' => ' + DayL[day] + 'day')
+            day += 1
+
+    def conf_provider_type(self, launch):
+        prov = Provider.objects.filter(description=launch)
+        if prov.exists() and prov[0].type_launch_id is None:
+            print('Provider => ' + launch + ' does not exist cost')
+
+
 class Extract(models.Model):
     date_launch = models.DateField('date launch')
     launch = models.CharField(max_length=100)
