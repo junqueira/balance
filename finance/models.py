@@ -1,6 +1,7 @@
 from django.db import models
 from datetime import datetime
 from django.contrib.contenttypes.models import *
+from finance.worksheet import *
 
 
 class TypeLaunch(models.Model):
@@ -23,21 +24,33 @@ class Provider(models.Model):
         provider.save()
 
 
-class ProviderWeek(models.Model):
+class Extract(models.Model):
+    date_launch = models.DateField('date launch')
+    launch = models.CharField(max_length=100)
+    date_purchase = models.DateField('date purchase')
+    value_debit = models.DecimalField(max_digits=8, decimal_places=2)
+    value_credit = models.DecimalField(max_digits=8, decimal_places=2)
+    value_balance = models.DecimalField(max_digits=8, decimal_places=2)
+    cancelled = models.BooleanField(default=True, db_index=True)
 
     def dif_date(self, date, day):
         return date.fromordinal(date.toordinal()-day)
 
-    def get_launch(self, date):
+    def print_launch(self, date):
         extract = Extract.objects.filter(date_purchase=date)
-        total = 0
+        cust_day = 0
+        cust_total = 0
         for x in extract:
-            total += x.value_debit
+            cust_day += x.value_debit
+            cust_total += cust_day
             print(' # ' + str(x.launch) + ' => ' + str(x.value_debit))
-        print(' ## ' + str(total) + ' ## ')
+        print(' ## ' + str(cust_day) + ' ## ')
 
-    def search(self, date=''):
+    def report_week(self, date=''):
         #date = datetime.strptime('09-05-2014', '%d-%m-%Y').date()
+        extract = Extract()
+        extract.importer()
+
         date = datetime.today().date()
         numWeek = date.isocalendar()
         DayL = ['Mon', 'Tues', 'Wednes', 'Thurs', 'Fri', 'Satur', 'Sun']
@@ -51,23 +64,16 @@ class ProviderWeek(models.Model):
             else:
                 day = self.dif_date(date, week - n)
             print(str(day) + ' => ' + DayL[n] + 'day')
-            self.get_launch(day)
+            self.print_launch(day)
             n += 1
+
+        w = WorkSheet()
+        w.send()
 
     def provider_type(self, launch):
         prov = Provider.objects.filter(description=launch)
         if prov.exists() and prov[0].type_launch_id is None:
             print('Provider => ' + launch + ' does not exist cost')
-
-
-class Extract(models.Model):
-    date_launch = models.DateField('date launch')
-    launch = models.CharField(max_length=100)
-    date_purchase = models.DateField('date purchase')
-    value_debit = models.DecimalField(max_digits=8, decimal_places=2)
-    value_credit = models.DecimalField(max_digits=8, decimal_places=2)
-    value_balance = models.DecimalField(max_digits=8, decimal_places=2)
-    cancelled = models.BooleanField(default=True, db_index=True)
 
     def str_to_date(self, date_launch):
         date = date_launch.replace('/','-')
@@ -118,7 +124,7 @@ class Extract(models.Model):
         else:
             provider.update(launch)
 
-    def importer(self, path='/Users/neto/Dropbox/projetcs/balance-pack/extrato.txt'):
+    def importer(self, path='/Users/neto/Downloads/extrato.txt'):
         with open(path, 'r') as ff:
             contents = ff.readlines()
             line = 0

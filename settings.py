@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import platform
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
@@ -82,9 +83,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
-STATIC_URL = '/static/'
+# STATIC_URL = '/static/'
 
-try:
-    execfile(os.path.join(ROOT_PATH, 'settings_local.py'))
-except IOError:
-    pass
+# try:
+#     execfile(os.path.join(BASE_DIR, 'settings_local.py'))
+# except IOError:
+#     pass
