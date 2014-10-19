@@ -1,7 +1,9 @@
 from django.db import models
 from datetime import datetime
 from django.contrib.contenttypes.models import *
-from finance.worksheet import *
+#from finance.worksheet import WorkSheet
+import gspread
+import os
 
 
 class TypeLaunch(models.Model):
@@ -33,47 +35,63 @@ class Extract(models.Model):
     value_balance = models.DecimalField(max_digits=8, decimal_places=2)
     cancelled = models.BooleanField(default=True, db_index=True)
 
+    DayL = ['Mon', 'Tues', 'Wednes', 'Thurs', 'Fri', 'Satur', 'Sun']
+
     def dif_date(self, date, day):
         return date.fromordinal(date.toordinal()-day)
+
+    def set_cost(self, cost):
+        _type = TypeLaunch.objects.all()
+        for t in _type:
+            print("Codigo = " + str(t.id) + " type = " + t.type_name)
+        desc = 'Inform the cost type to: ' + cost.launch
+        desc += ' value last purchase ' + str(cost.value_debit) + " => "
+        n = input(desc)
+        while not TypeLaunch.objects.filter(id=n).exists():
+            n = input(desc)
+        prov = Provider.objects.get(description=cost.launch)
+        prov.type_launch_id = n
+        prov.save()
+
+    def get_cost(self, cost):
+        prov = Provider.objects.get(description=cost.launch)
+        _type = TypeLaunch.objects.get(id=prov.type_launch_id)
+        return _type.type_name
 
     def print_launch(self, date):
         extract = Extract.objects.filter(date_purchase=date)
         cust_day = 0
         cust_total = 0
-        for x in extract:
-            cust_day += x.value_debit
-            cust_total += cust_day
-            print(' # ' + str(x.launch) + ' => ' + str(x.value_debit))
+        for cost in extract:
+            prov = Provider.objects.filter(description=cost.launch)
+            if prov.exists() and prov[0].type_launch_id is None:
+                self.set_cost(cost)
+            else:
+                cust_day += cost.value_debit
+                desc = ' # ' + str(cost.launch) + ' => ' + str(cost.value_debit)
+                desc += ' => ' + self.get_cost(cost)
+                print(desc)
         print(' ## ' + str(cust_day) + ' ## ')
 
     def report_week(self, date=''):
         #date = datetime.strptime('09-05-2014', '%d-%m-%Y').date()
+        # the weekly cost and so closed 'Fri', 'Satur' or 'Sun'
         extract = Extract()
         extract.importer()
-
         date = datetime.today().date()
-        numWeek = date.isocalendar()
-        DayL = ['Mon', 'Tues', 'Wednes', 'Thurs', 'Fri', 'Satur', 'Sun']
-        # the weekly cost and so closed 'Fri', 'Satur' or 'Sun'
         fri = 4
         n = 0
         week = date.weekday()
-        while n < len(DayL):
+        while n < 7:
             if week < fri:
                 day = self.dif_date(date, 7 + week - n)
             else:
                 day = self.dif_date(date, week - n)
-            print(str(day) + ' => ' + DayL[n] + 'day')
+            print(str(day) + ' => ' + self.DayL[n] + 'day')
+
             self.print_launch(day)
+            self.send(day)
             n += 1
-
-        w = WorkSheet()
-        w.send()
-
-    def provider_type(self, launch):
-        prov = Provider.objects.filter(description=launch)
-        if prov.exists() and prov[0].type_launch_id is None:
-            print('Provider => ' + launch + ' does not exist cost')
 
     def str_to_date(self, date_launch):
         date = date_launch.replace('/','-')
@@ -154,3 +172,42 @@ class Extract(models.Model):
                 line += 1
 
             ff.close()
+
+    def send(self, date):
+        #date = datetime.strptime('17-10-2014' , '%d-%m-%Y').date()
+
+
+        sh = g.open("cost_week")
+        #worksheet = sh.get_worksheet(0)
+        worksheet = sh.worksheet("Week - " + str(date.isocalendar()[1]))
+        #worksheet.update_acell('B1', 'Bingo!')
+        #worksheet.update_cell(1, 2, 'Bingo!')
+        #cell_list = worksheet.range('A1:C7')
+        extract = Extract.objects.filter(date_purchase=date)
+        coll = (date.weekday()+1) * 4
+        day_cost = 0
+        for launch in extract:
+            day_cost += launch.value_debit
+
+        day_name = self.DayL[date.weekday()]
+        worksheet.update_cell(1, coll, day_name)
+        worksheet.update_cell(1, coll+1, str(day_cost).replace('.',','))
+        worksheet.update_cell(1, coll+2, 'Type')
+        line = 2
+        for cost in extract:
+            worksheet.update_cell(line, coll, cost.launch)
+            worksheet.update_cell(line, coll+1, str(cost.value_debit).replace('.',','))
+            worksheet.update_cell(line, coll+2, self.get_cost(cost))
+            line += 1
+
+        # for x in extract:
+        #     total += x.value_debit
+        #     print(' # ' + str(x.launch) + ' => ' + str(x.value_debit))
+        # print(' ## ' + str(total) + ' ## ')
+
+        # for cell in cell_list:
+        #   cell.value = 'O_o'
+
+        # worksheet.update_cells(cell_list)
+
+ 
