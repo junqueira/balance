@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import sys
 import platform
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
@@ -58,13 +59,30 @@ WSGI_APPLICATION = 'wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         #'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+#         'NAME': 'balance.db',
+#     }
+# }
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        #'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        'NAME': 'balance.db',
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+            'NAME': 'balance',                      # Or path to database file if using sqlite3.
+            # The following settings are not used with sqlite3:
+            'USER': 'balance',
+            'PASSWORD': 'dengo',
+            'HOST': 'localhost',                      # Empty for localhost through domain sockets or           '127.0.0.1' for localhost through TCP.
+            'PORT': '5432',                      # Set to empty string for default.
+        }
     }
-}
+
+# Parse database configuration from $DATABASE_URL
+import dj_database_url
+...
+DATABASES['default'] =  dj_database_url.config()
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
@@ -79,13 +97,17 @@ USE_L10N = True
 
 USE_TZ = True
 
+EMAIL_GOOGLE = ''
+SENHA_GOOGLE = ''
+DOC_KEY_GOOGLE = ''
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
 STATIC_URL = '/static/'
 
-# try:
-#     execfile(os.path.join(BASE_DIR, 'settings_local.py'))
-# except IOError:
-#     pass
+try:
+	local = open(os.path.join(sys.path[0],'settings_local.py')).read()
+	exec(local)
+except IOError:
+	pass
