@@ -3,7 +3,7 @@ from datetime import datetime
 from django.contrib.contenttypes.models import *
 #from finance.worksheet import WorkSheet
 import gspread
-import os
+from django.conf import settings
 
 
 class TypeLaunch(models.Model):
@@ -98,6 +98,7 @@ class Extract(models.Model):
         return datetime.strptime(date, '%d-%m-%Y').date()
 
     def get_date_purchase(self, date, launch):
+        launch = launch.strip()
         if launch[-3] == '/':
             date_purchase = launch[-5:].replace('/','-')
             date = date_purchase + '-' + str(date.year)
@@ -142,7 +143,9 @@ class Extract(models.Model):
         else:
             provider.update(launch)
 
-    def importer(self, path='/Users/neto/Downloads/extrato.txt'):
+    def importer(self, path=''):
+        path = os.path.expanduser("~") + "/Downloads/extrato.txt"
+
         with open(path, 'r') as ff:
             contents = ff.readlines()
             line = 0
@@ -150,13 +153,14 @@ class Extract(models.Model):
                 extract = Extract()
                 date_launch, launch, value = contents[line].split(';')
                 date_launch = extract.str_to_date(date_launch)
-                launch = extract.get_launch(launch)
+                date_purchase = extract.get_date_purchase(date_launch, launch)
                 value = extract.str_to_float(value)
+                launch = extract.get_launch(launch)
 
                 if not extract.is_equal(date_launch, launch, value).exists():
                     extract.date_launch = date_launch
                     extract.launch = launch
-                    extract.date_purchase = extract.get_date_purchase(date_launch, launch)
+                    extract.date_purchase = date_purchase
 
                     if value < 0:
                         extract.value_debit = abs(value)
@@ -175,8 +179,8 @@ class Extract(models.Model):
 
     def send(self, date):
         #date = datetime.strptime('17-10-2014' , '%d-%m-%Y').date()
-
-
+        g = gspread.login(settings.email_google, settings.senha_google)
+        g.open_by_key(settings.doc_key_google)
         sh = g.open("cost_week")
         #worksheet = sh.get_worksheet(0)
         worksheet = sh.worksheet("Week - " + str(date.isocalendar()[1]))
@@ -210,4 +214,4 @@ class Extract(models.Model):
 
         # worksheet.update_cells(cell_list)
 
- 
+
