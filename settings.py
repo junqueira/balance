@@ -26,8 +26,8 @@ DEBUG = False
 
 TEMPLATE_DEBUG = True
 
-ALLOWED_HOSTS = []
-
+#ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['secure-mountain-6385.herokuapp.com']
 
 # Application definition
 
@@ -67,22 +67,37 @@ WSGI_APPLICATION = 'wsgi.application'
 #     }
 # }
 
-DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-            'NAME': 'balance',                      # Or path to database file if using sqlite3.
-            # The following settings are not used with sqlite3:
-            'USER': 'balance',
-            'PASSWORD': 'dengo',
-            'HOST': 'localhost',                      # Empty for localhost through domain sockets or           '127.0.0.1' for localhost through TCP.
-            'PORT': '5432',                      # Set to empty string for default.
-        }
-    }
+# DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+#             'NAME': 'balance',                      # Or path to database file if using sqlite3.
+#             # The following settings are not used with sqlite3:
+#             'USER': 'balance',
+#             'PASSWORD': 'dengo',
+#             'HOST': 'localhost',                      # Empty for localhost through domain sockets or           '127.0.0.1' for localhost through TCP.
+#             'PORT': '5432',                      # Set to empty string for default.
+#         }
+#     }
 
 # Parse database configuration from $DATABASE_URL
 import dj_database_url
-...
-DATABASES['default'] =  dj_database_url.config()
+
+DATABASES = { 'default' : dj_database_url.config()}
+# we only need the engine name, as heroku takes care of the rest
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql_psycopg2",
+    }
+}
+
+# Honor the 'X-Forwarded-Proto' header for request.is_secure()
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# try to load local_settings.py if it exists
+# try:
+#   from local_settings import *
+# except Exception as e:
+#   pass
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
