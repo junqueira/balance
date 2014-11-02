@@ -3,6 +3,7 @@ from datetime import datetime
 from django.contrib.contenttypes.models import *
 #from finance.worksheet import WorkSheet
 import gspread
+import os
 from django.conf import settings
 
 
@@ -74,24 +75,29 @@ class Extract(models.Model):
         print(' ## ' + str(cust_day) + ' ## ')
 
     def report_week(self, date=''):
-        #date = datetime.strptime('09-05-2014', '%d-%m-%Y').date()
-        # the weekly cost and so closed 'Fri', 'Satur' or 'Sun'
         extract = Extract()
         extract.importer()
         date = datetime.today().date()
+        #date = datetime.strptime('25-10-2014', '%d-%m-%Y').date()
         fri = 4
         n = 0
         week = date.weekday()
-        while n < 7:
-            if week < fri:
-                day = self.dif_date(date, 7 + week - n)
-            else:
-                day = self.dif_date(date, week - n)
-            print(str(day) + ' => ' + self.DayL[n] + 'day')
+        first_day_week = self.dif_date(date, week)
+        last_date_purchase = Extract.objects.all().last().date_purchase
+        if first_day_week > last_date_purchase:
+        	print('Weeks earlier not closed, archive extract is old')
+        else:
+	        while n < 7:
+	        	# the weekly cost and so closed 'Fri', 'Satur' or 'Sun
+	            if week < fri:
+	                day = self.dif_date(date, 7 + week - n)
+	            else:
+	                day = self.dif_date(date, week - n)
+	            print(str(day) + ' => ' + self.DayL[n] + 'day')
 
-            self.print_launch(day)
-            self.send(day)
-            n += 1
+	            self.print_launch(day)
+	            self.send(day)
+	            n += 1
 
     def str_to_date(self, date_launch):
         date = date_launch.replace('/','-')
@@ -179,8 +185,8 @@ class Extract(models.Model):
 
     def send(self, date):
         #date = datetime.strptime('17-10-2014' , '%d-%m-%Y').date()
-        g = gspread.login(settings.email_google, settings.senha_google)
-        g.open_by_key(settings.doc_key_google)
+        g = gspread.login(settings.EMAIL_GOOGLE, settings.SENHA_GOOGLE)
+        g.open_by_key(settings.DOC_KEY_GOOGLE)
         sh = g.open("cost_week")
         #worksheet = sh.get_worksheet(0)
         worksheet = sh.worksheet("Week - " + str(date.isocalendar()[1]))
