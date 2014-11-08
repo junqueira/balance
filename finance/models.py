@@ -189,7 +189,12 @@ class Extract(models.Model):
         g.open_by_key(settings.DOC_KEY_GOOGLE)
         sh = g.open("cost_week")
         #worksheet = sh.get_worksheet(0)
-        worksheet = sh.worksheet("Week - " + str(date.isocalendar()[1]))
+        name_worksheet = "Week - " + str(date.isocalendar()[1])
+        try:
+        	worksheet = sh.add_worksheet(title=name_worksheet, rows="40", cols="32")
+        except Exception:
+        	worksheet = sh.worksheet("Week - " + str(date.isocalendar()[1]))
+
         #worksheet.update_acell('B1', 'Bingo!')
         #worksheet.update_cell(1, 2, 'Bingo!')
         #cell_list = worksheet.range('A1:C7')
