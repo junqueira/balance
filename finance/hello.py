@@ -8,10 +8,13 @@ app = Flask(__name__)
 def hello():
     return 'Hello World!'
 
+if __name__ == "__main__":
+    app.run()
+
 def index(request):
     r = requests.get('http://httpbin.org/status/418')
     times = int(os.environ.get('TIMES',3))
-    print r.text
+    print(r.text)
     return HttpResponse('<pre>' + r.text + '</pre>')
 
 def db(request):

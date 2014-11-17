@@ -74,6 +74,10 @@ class Extract(models.Model):
 				print(desc)
 		print(' ## ' + str(cust_day) + ' ## ')
 
+	def get_week(self):
+		date = datetime.today().date()
+		num_w = date.weekday()
+
 	def report_week(self, date=''):
 		extract = Extract()
 		extract.importer()
