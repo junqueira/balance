@@ -26,8 +26,8 @@ class TypeLaunchAdmin(admin.ModelAdmin):
 
 
 class ProviderAdmin(admin.ModelAdmin):
-    search_fields = ('id', 'type_launch__type_name', 'date_last_purchase', 'value_total', 'description',)
-    list_display = ('id', 'type_name', 'date_last_purchase', 'value_total', 'description',)
+    search_fields = ('id', 'type_launch__type_name', 'date_last_purchase', 'description',)
+    list_display = ('id', 'type_name', 'date_last_purchase', 'description',)
     #raw_id_fields = ('type_launch', )
 
     def type_name(self, instance):
