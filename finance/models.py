@@ -68,7 +68,7 @@ class Provider(models.Model):
 			for value in pv_week:
 				if value.value_debit > 0:
 					tot_debit += value.value_debit
-				if value.value_credit >0:
+				if value.value_credit > 0:
 					tot_credit += value.value_credit
 
 			pv.total_debit_week = tot_debit
@@ -77,6 +77,7 @@ class Provider(models.Model):
 				pv.type_launch_id  = self.set_provider_type(pv)
 			pv.num_week_id = num_week
 			pv.save()
+			return pv.id
 
 		def set_provider_type(self, pv):
 			_type = TypeLaunch.objects.all()
@@ -92,10 +93,6 @@ class Provider(models.Model):
 				n = input(desc)
 			return n
 
-		def get_type_launch(self, pv):
-			_type = TypeLaunch.objects.get(id=prov.type_launch_id)
-			return _type.type_name
-
 
 class Extract(models.Model):
 	date_launch = models.DateField('date launch')
@@ -105,131 +102,158 @@ class Extract(models.Model):
 	value_credit = models.DecimalField(max_digits=8, decimal_places=2)
 	value_balance = models.DecimalField(max_digits=8, decimal_places=2)
 	cancelled = models.BooleanField(default=True, db_index=True)
+	provider = models.ForeignKey(Provider, blank=True, null=True)
 
 	DayL = ['Mon', 'Tues', 'Wednes', 'Thurs', 'Fri', 'Satur', 'Sun']
 
 	def report_week(self, date=''):
 		self.importer()
 		date = datetime.today().date()
-		num_week = date.isocalendar()[1]
 		week = self.get_week(date)
 		for day in week:
-			if day.weekday() == 0:
-				worksheet = self.get_worksheet(day)
-			#self.send_cost_week(worksheet, day)
+			if day.weekday() == 0: #monday new sheet
+				num_week = day.isocalendar()[1]
+				worksheet = self.get_worksheet(num_week)
+				summary = self.get_summary_week(day)
+				# for x in summary:
+				# 	print(x)
+				# print("termino")
+				self.send_summary_week(worksheet, summary)
+			self.send_cost_week(worksheet, day)
 
-	# def print_launch(self, date):
-	# 	extract = Extract.objects.filter(date_purchase=date)
-	# 	cust_day = 0
-	# 	print(str(date) + ' => ' + self.DayL[date.weekday()] + 'day')
-	# 	for ext in extract:
-	# 		cust_day += ext.value_debit
-	# 		desc = ' # ' + str(ext.launch) + ' => ' + str(ext.value_debit)
-	# 		desc += ' => ' + self.get_cost(ext)
-	# 		print(desc)
-	# 	print(' ## ' + str(cust_day) + ' ## ')
-
-	def get_worksheet(self, date):
+	def get_worksheet(self, num_week):
 			g = gspread.login(settings.EMAIL_GOOGLE, settings.SENHA_GOOGLE)
 			g.open_by_key(settings.DOC_KEY_GOOGLE)
 			sh = g.open("cost_week")
-			name_worksheet = "Week - " + str(date.isocalendar()[1])
+			name_worksheet = "Week - " + str(num_week)
 			rows = "40"
 			cols = "32"
 			try:
 				worksheet = sh.add_worksheet(title=name_worksheet, rows=rows, cols=cols)
 			except Exception:
-				worksheet = sh.worksheet("Week - " + str(date.isocalendar()[1]))
+				worksheet = sh.worksheet(name_worksheet)
 
-			self.send_summary_week(worksheet, date)
 			return worksheet
 
 	def total_week(self, num_week, _type=None):
 		value_week = []
 		tot_debit_week = 0
 		tot_credit_week = 0
+		wd = WeekNumber.objects.get(num_week=num_week)
 		if _type is None:
-			pv = Provider.objects.filter(num_week_id=num_week)
+			ext = Extract.objects.filter(date_purchase__range=[wd.date_init, wd.date_final])
 		else:
-			pv = Provider.objects.filter(type_launch_id=_type, num_week_id=num_week)
-		if pv.exists():
-			for p in pv:
-				tot_debit_week += p.total_debit_week
-				tot_credit_week += p.total_credit_week
+			ext = Extract.objects.filter(provider__type_launch_id=_type, date_purchase__range=[wd.date_init, wd.date_final])
+		if ext.exists():
+			for cost in ext:
+				tot_debit_week += cost.value_debit
+				tot_credit_week += cost.value_credit
 			value_week.append(tot_debit_week)
 			value_week.append(tot_credit_week)
 			value_week.append(tot_credit_week - tot_debit_week)
 		return value_week
 
-	def send_summary_week(self, worksheet, date):
+	def send_summary_week(self, worksheet, summary):
+		row = len(summary)
+		coll = len(summary[0])
+		init_range = worksheet.get_addr_int(1,1)
+		final_range = worksheet.get_addr_int(row, coll)
+		_range = init_range + ":" + final_range
+		cell_list = worksheet.range(_range)
+		i = 0
+		for row in summary:
+			for coll in row:
+				cell_list[i].value = str(coll)
+				i += 1
+		worksheet.update_cells(cell_list)
+
+	def get_summary_week(self, date=""):
+		# Monday first day week
+		#date = datetime.strptime('24-11-2014', '%d-%m-%Y').date()
 		num_week = date.isocalendar()[1]
 		tp_launch = TypeLaunch.objects.all()
-		name_last_day = self.name_day(date.fromordinal(date.toordinal()+6))
-		line = 1
-		coll = 1
-		worksheet.update_cell(line, coll, self.name_day(date))
-		worksheet.update_cell(line, coll+1, "TO")
-		worksheet.update_cell(line, coll+2, name_last_day)
-		worksheet.update_cell(line, coll+3, "Account Itau")
+		first_day = self.name_day(date)
+		last_day = self.name_day(date.fromordinal(date.toordinal()+6))
 
-		line = 2
+		line_head = 5
+		pv_week = Provider.objects.filter(num_week_id=num_week)
+		line_head = line_head + pv_week.values('type_launch_id').distinct().count()
+		summary = [['' for coll in range(0)] for row in range(line_head)]
+
+		line = 0
+		summary[line].append(first_day)
+		summary[line].append("TO")
+		summary[line].append(last_day)
+		summary[line].append("Account Itau")
+
+		line = 1
 		value_week = self.total_week(num_week)
 		value_debit = value_week[0]
 		value_credit = value_week[1]
 		tot_week_before = self.total_week(num_week-1)[2] + self.total_week(num_week-2)[2]
 		tot_week = tot_week_before - value_debit + value_credit
 		if value_credit > value_debit:
-			worksheet.update_cell(line, coll, "Result Positive")
+			summary[line].append("Result Positive")
 		else:
-			worksheet.update_cell(line, coll, "Result Negative")
-		worksheet.update_cell(line, coll+1, str(value_debit).replace('.',','))
-		worksheet.update_cell(line, coll+2, str(value_credit).replace('.',','))
-		worksheet.update_cell(line, coll+3, str(tot_week).replace('.',','))
+			summary[line].append("Result Negative")
+		summary[line].append(str(value_debit).replace('.',','))
+		summary[line].append(str(value_credit).replace('.',','))
+		summary[line].append(str(tot_week).replace('.',','))
+
+		line = 2
+		summary[line].append("Cost Week")
+		summary[line].append("Debit")
+		summary[line].append("Credit")
+		summary[line].append("Total")
 
 		line = 3
-		worksheet.update_cell(line, coll, "Cost Week")
-		worksheet.update_cell(line, coll+1, "Debit")
-		worksheet.update_cell(line, coll+2, "Credit")
-		worksheet.update_cell(line, coll+3, "Total")
-
-		line = 4
 		for tp in tp_launch:
 			tot_week_type = self.total_week(num_week, tp.id)
 			if len(tot_week_type):
 				value_debit = str(tot_week_type[0]).replace('.',',')
 				value_credit = str(tot_week_type[1]).replace('.',',')
 				value_total = str(tot_week_type[2]).replace('.',',')
-				worksheet.update_cell(line, coll, tp.type_name)
-				worksheet.update_cell(line, coll+1, value_debit)
-				worksheet.update_cell(line, coll+2, value_credit)
-				worksheet.update_cell(line, coll+3, value_total)
+				summary[line].append(tp.type_name)
+				summary[line].append(value_debit)
+				summary[line].append(value_credit)
+				summary[line].append(value_total)
 				line += 1
 
+		return summary
+
 	def name_day(self, date):
-		name_day = self.DayL[date.weekday()] + " day " + str(date.day) + " " + date.strftime("%B")
+		name_day = self.DayL[date.weekday()] + " " + str(date.day) + " " + date.strftime("%B")
 		return name_day
 
-	def send_cost_week(self, worksheet, week):
+	def name_cost(self, launch):
+		prov = Provider.objects.get(description=launch)
+		name_cost = TypeLaunch.objects.get(id=prov.type_launch_id).type_name
+		return name_cost
+
+	def send_cost_week(self, worksheet, date):
 		extract = Extract.objects.filter(date_purchase=date)
 		n_day = date.weekday()
-		coll = (n_day+1) * 4
+		num_week = date.isocalendar()[1]
+		pv_week = Provider.objects.filter(num_week_id=num_week)
+		line = 5 + pv_week.values('type_launch_id').distinct().count()
+		if n_day == 0:
+			coll = 1
+		else:
+			coll = (n_day * 3) + 1
 		day_cost = 0
-		line = 2
-		max_line = 0
 		for launch in extract:
 			day_cost += launch.value_debit
 
 		day_name = self.name_day(date)
-		worksheet.update_cell(1, coll, day_name)
-		worksheet.update_cell(1, coll+1, str(day_cost).replace('.',','))
-		worksheet.update_cell(1, coll+2, 'Type')
+		worksheet.update_cell(line, coll, day_name)
+		worksheet.update_cell(line, coll+1, str(day_cost).replace('.',','))
+		worksheet.update_cell(line, coll+2, 'Type')
+		line += 1
 		for cost in extract:
 			worksheet.update_cell(line, coll, cost.launch)
 			worksheet.update_cell(line, coll+1, str(cost.value_debit).replace('.',','))
-			worksheet.update_cell(line, coll+2, self.get_cost(cost))
+			worksheet.update_cell(line, coll+2, self.name_cost(cost.launch))
 			line += 1
-			if max_line < line:
-				max_line = line
 
 		# cell_list = worksheet.range('A1:E15')
 		# for cell in cell_list:
@@ -311,10 +335,10 @@ class Extract(models.Model):
 						extract.value_credit = value
 
 					extract.value_balance = 0
+					pv = Provider()
+					extract.provider_id = pv.provider_update(launch, date_purchase)
 					extract.save()
 
-				pv = Provider()
-				pv.provider_update(launch, date_purchase)
 				line += 1
 
 			ff.close()
